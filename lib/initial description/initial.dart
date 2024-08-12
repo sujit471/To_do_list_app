@@ -45,12 +45,14 @@ class Initial extends StatelessWidget {
                   ),
                 ),
                 ElevatedButton(
+
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white, backgroundColor:  Color.fromRGBO(255, 116, 97, 1.0), // Text color
-                      padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                      foregroundColor: Colors.white,
+                      backgroundColor:  Color.fromRGBO(255, 116, 97, 1.0), // Text color
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
                     ),onPressed: (){
                   Navigator.push(context,MaterialPageRoute(builder: (context)=>TaskListScreen()));
-                }, child:Text("get Started") ),
+                }, child:const Text("get Started") ),
               ],
             ),
           ),
