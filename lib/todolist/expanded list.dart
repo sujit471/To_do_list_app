@@ -81,7 +81,7 @@ class _ExpandedlistState extends State<Expandedlist> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task List (${_remainingTasksCount} left)'),
+        title: Text('Task List ($_remainingTasksCount left)'),
         automaticallyImplyLeading: false, // This removes the back button
       ),
       body: Column(
@@ -99,7 +99,7 @@ class _ExpandedlistState extends State<Expandedlist> {
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                     child: ListTile(
-                      leading: CircleAvatar(
+                      leading: const CircleAvatar(
                         backgroundColor: Colors.black,
                         radius: 4,
                       ),

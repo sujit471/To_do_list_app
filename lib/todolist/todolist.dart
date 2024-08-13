@@ -1,14 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:to_do_list/bloc/task_bloc.dart';
-import 'package:to_do_list/bloc/task_event.dart';
 import 'dart:convert';
 import 'package:to_do_list/model/task.dart';
 import 'package:to_do_list/model/task_detail_screen.dart';
-import '../bloc/task_state.dart';
+import 'package:to_do_list/bloc/bloc_export.dart';
 import 'expanded list.dart';
 import 'notification.dart';
 
@@ -18,14 +15,27 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
+  bool _isTapped = false ;
   List<Task> _tasks = [];
 
+  void _onTap() {
+    setState(() {
+      _isTapped = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      setState(() {
+        _isTapped = false;
+      });
+    });
+  }
   @override
   void initState() {
     super.initState();
     _loadTasks();
     context.read<TaskBloc>().add(LoadTasks());
   }
+
 
   Future<void> _loadTasks() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -51,7 +61,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
       _tasks.add(task);
       _saveTasks();
     });
+    NotificationService().showNotification(
+      0,
+      'Task Created',
+      'The task "${task.title}" has been added.',
+    );
   }
+
 
   void _showRemainingTasksNotification() {
     int remainingTasks = _remainingTasksCount;
@@ -132,12 +148,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
         ],
       ),
       body: BlocBuilder<TaskBloc,TaskState>(
-
         builder: (context,state){
           if(state is TaskInitial){
             return const CircularProgressIndicator();
           }
            if(state  is TaskLoadSuccess){
+             final tasks = state.tasks;
+             final remainingTskCount = tasks.where((task)=> !task.isCompleted).length;
             return  SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(15.0),
@@ -320,7 +337,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                         ),
                                       );
                                       if (updatedTask != null) {
-                                        _updateTask(updatedTask, index);
+                                       //
+                                        // _updateTask(updatedTask, index);
+                                        BlocProvider.of<TaskBloc>(context).add(UpdateTasks(index,updatedTask));
                                       }
                                     },
                                   ),
@@ -328,13 +347,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                     icon: const Icon(Icons.delete, color: Colors.white),
                                     onPressed: () {
                                       _deleteTask(index);
+                                      // //BlocProvider.of<TaskBloc>(context)
+                                      //     .add(DeleteTask(index));
                                     },
                                   ),
                                   Checkbox(
                                     activeColor: Colors.purple,
                                     value: task.isCompleted,
                                     onChanged: (bool? value) {
+
                                       _toggleTaskCompletion(index);
+                                      BlocProvider.of<TaskBloc>(context)
+                                          .add(ToggleTaskCompletion(index));
                                     },
                                   ),
                                 ],
@@ -348,7 +372,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                   ),
                                 );
                                 if (updatedTask != null) {
-                                  _updateTask(updatedTask, index);
+                                 // _updateTask(updatedTask, index);
+                                  BlocProvider.of<TaskBloc>(context)
+                                      .add(UpdateTasks(index, updatedTask));
                                 }
                               },
                             ),

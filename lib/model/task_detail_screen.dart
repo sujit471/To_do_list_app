@@ -41,9 +41,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: TextFormField(
-
                   initialValue: _title,
-
                   decoration: const InputDecoration(
                       border: InputBorder.none,
                     prefixIcon: Icon(Icons.book,color: Colors.white,),

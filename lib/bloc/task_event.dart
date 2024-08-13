@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-
 import '../model/task.dart';
 
 abstract class TaskEvent extends Equatable{

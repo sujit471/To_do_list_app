@@ -13,7 +13,7 @@ class NotificationService {
 
   Future<void> initNotification() async {
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final InitializationSettings initializationSettings = InitializationSettings(
+    const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
     );
 
@@ -22,7 +22,8 @@ class NotificationService {
 
   Future<void> showNotification(int id, String title, String body) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'your_channel_id', 'your_channel_name',
+        'task_notification', 'Task Notification',
+        channelDescription: 'Notification for tasks',
         importance: Importance.max,
         priority: Priority.high,
         ticker: 'ticker'
