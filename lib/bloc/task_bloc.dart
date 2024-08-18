@@ -1,69 +1,72 @@
-import 'dart:convert';
-import 'bloc_export.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
+import 'bloc_export.dart';  // Include all necessary BLoC exports
+import '../database/my_database.dart';
 import '../model/task.dart';
 
 class TaskBloc extends Bloc<TaskEvent, TaskState> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+
   TaskBloc() : super(TaskInitial()) {
     on<LoadTasks>(_onLoadTasks);
     on<AddTasks>(_addTasks);
     on<UpdateTasks>(_updateTasks);
     on<DeleteTask>(_deleteTasks);
-    on<ToggleTaskCompletion>(_ontoggleTaskCompletion);
+    on<ToggleTaskCompletion>(_toggleTaskCompletion);
   }
 
   Future<void> _onLoadTasks(LoadTasks event, Emitter<TaskState> emit) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? taskJson = prefs.getString('tasks');
-    if (taskJson != null) {
-      Iterable decoded = jsonDecode(taskJson);
-      List<Task> tasks = decoded.map((task) => Task.fromMap(task)).toList();
+    try {
+      final tasks = await _databaseHelper.getTasks();
       emit(TaskLoadSuccess(tasks));
-    } else {
+    } catch (e) {
       emit(TaskLoadFailure('Failed to load tasks'));
     }
   }
 
   Future<void> _addTasks(AddTasks event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final List<Task> updatedTasks =
-      List.from((state as TaskLoadSuccess).tasks)..add(event.task);
-      await _saveTasks(updatedTasks);
+      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks)
+        ..add(event.task);
+      await _databaseHelper.insertTask(event.task);
       emit(TaskLoadSuccess(updatedTasks));
     }
   }
 
-  Future<void> _saveTasks(List<Task> tasks) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String tasksJson = jsonEncode(tasks.map((task) => task.toMap()).toList());
-    await prefs.setString('tasks', tasksJson);
-  }
-
   Future<void> _updateTasks(UpdateTasks event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final List<Task> updatedTasks = List.from((state as TaskLoadSuccess).tasks);
+      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
       updatedTasks[event.index] = event.task;
-      await _saveTasks(updatedTasks);
+      await _databaseHelper.updateTask(event.task);
       emit(TaskLoadSuccess(updatedTasks));
     }
   }
 
   Future<void> _deleteTasks(DeleteTask event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final List<Task> updatedTasks =
-      List.from((state as TaskLoadSuccess).tasks)..removeAt(event.index);
-      await _saveTasks(updatedTasks);
-      emit(TaskLoadSuccess(updatedTasks));
+      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
+      final taskToDelete = updatedTasks[event.index];
+
+      // Ensure the ID is used correctly and not nullable
+      final taskId = taskToDelete.id;
+      if (taskId != null) {
+        await _databaseHelper.deleteTask(taskId);
+        updatedTasks.removeAt(event.index);
+        emit(TaskLoadSuccess(updatedTasks));
+      } else {
+        emit(TaskLoadFailure('Failed to delete task: ID is null'));
+      }
     }
   }
 
-  Future<void> _ontoggleTaskCompletion(
-      ToggleTaskCompletion event, Emitter<TaskState> emit) async {
+
+
+  Future<void> _toggleTaskCompletion(ToggleTaskCompletion event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final List<Task> updatedTasks = List.from((state as TaskLoadSuccess).tasks);
-      final Task task = updatedTasks[event.index];
-      updatedTasks[event.index] = task.copyWith(isCompleted: !task.isCompleted);
-      await _saveTasks(updatedTasks);
+      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
+      final task = updatedTasks[event.index];
+      final updatedTask = task.copyWith(isCompleted: !task.isCompleted);
+      updatedTasks[event.index] = updatedTask;
+      await _databaseHelper.updateTask(updatedTask);
       emit(TaskLoadSuccess(updatedTasks));
     }
   }

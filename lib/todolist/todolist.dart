@@ -1,12 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import 'package:to_do_list/model/task.dart';
-import 'package:to_do_list/model/task_detail_screen.dart';
-import 'package:to_do_list/bloc/bloc_export.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/task_bloc.dart';
+import '../bloc/task_event.dart';
+import '../bloc/task_state.dart';
+import '../model/task_detail_screen.dart';
+import '../model/task.dart';
 import 'expanded list.dart';
+
 import 'notification.dart';
 
 class TaskListScreen extends StatefulWidget {
@@ -15,99 +16,32 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
-  bool _isTapped = false ;
-  List<Task> _tasks = [];
-
-  void _onTap() {
-    setState(() {
-      _isTapped = true;
-    });
-
-    Future.delayed(const Duration(milliseconds: 200), () {
-      setState(() {
-        _isTapped = false;
-      });
-    });
-  }
   @override
   void initState() {
     super.initState();
-    _loadTasks();
     context.read<TaskBloc>().add(LoadTasks());
   }
 
-
-  Future<void> _loadTasks() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? tasksJson = prefs.getString('tasks');
-    if (tasksJson != null) {
-      Iterable decoded = jsonDecode(tasksJson);
-      setState(() {
-        _tasks = decoded.map((task) => Task.fromMap(task)).toList();
-      });
-      _showRemainingTasksNotification();
-    }
-  }
-
-  Future<void> _saveTasks() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String tasksJson = jsonEncode(_tasks.map((task) => task.toMap()).toList());
-    await prefs.setString('tasks', tasksJson);
-    _showRemainingTasksNotification();
-  }
-
   void _addTask(Task task) {
-    setState(() {
-      _tasks.add(task);
-      _saveTasks();
-    });
-    NotificationService().showNotification(
-      0,
-      'Task Created',
-      'The task "${task.title}" has been added.',
-    );
-  }
-
-
-  void _showRemainingTasksNotification() {
-    int remainingTasks = _remainingTasksCount;
-    String taskText = remainingTasks == 1 ? 'task' : 'tasks';
-    NotificationService().showNotification(
-      0,
-      'Task Reminder',
-      'You have $remainingTasks $taskText left to complete.',
-    );
+    context.read<TaskBloc>().add(AddTasks(task));
   }
 
   void _updateTask(Task task, int index) {
-    setState(() {
-      _tasks[index] = task;
-      _saveTasks();
-    });
+    context.read<TaskBloc>().add(UpdateTasks(index, task));
   }
 
   void _deleteTask(int index) {
-    setState(() {
-      _tasks.removeAt(index);
-      _saveTasks();
-    });
-  }
-
-  int get _remainingTasksCount {
-    return _tasks.where((task) => !task.isCompleted).length;
+    context.read<TaskBloc>().add(DeleteTask(index));
   }
 
   void _toggleTaskCompletion(int index) {
-    setState(() {
-      _tasks[index].isCompleted = !_tasks[index].isCompleted;
-      _saveTasks();
-    });
+    context.read<TaskBloc>().add(ToggleTaskCompletion(index));
   }
-
-  double calculateProgress() {
-    if (_tasks.isEmpty) return 0.0;
-    int completedTasks = _tasks.where((task) => task.isCompleted).length;
-    return (completedTasks / _tasks.length) * 100;
+  // Calculate the completion progress of tasks
+  double calculateProgress(List<Task> tasks) {
+    if (tasks.isEmpty) return 0.0;
+    int completedTasks = tasks.where((task) => task.isCompleted).length;
+    return (completedTasks / tasks.length) * 100;
   }
 
   @override
@@ -115,47 +49,34 @@ class _TaskListScreenState extends State<TaskListScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(
-            Icons.menu,
-            size: 30,
-          ),
+          icon: const Icon(Icons.menu, size: 30),
           onPressed: () {
-            // Handle menu button press
             print('Menu button pressed');
           },
         ),
         actions: <Widget>[
           IconButton(
-            icon: const Icon(
-              Icons.search,
-              size: 30,
-            ),
+            icon: const Icon(Icons.search, size: 30),
             onPressed: () {
-              // Handle search button press
               print('Search button pressed');
             },
           ),
           IconButton(
-            icon: const Icon(
-              Icons.notifications,
-              size: 30,
-            ),
+            icon: const Icon(Icons.notifications, size: 30),
             onPressed: () {
-              // Handle notification button press
               print('Notification button pressed');
             },
           ),
         ],
       ),
-      body: BlocBuilder<TaskBloc,TaskState>(
-        builder: (context,state){
-          if(state is TaskInitial){
-            return const CircularProgressIndicator();
-          }
-           if(state  is TaskLoadSuccess){
-             final tasks = state.tasks;
-             final remainingTskCount = tasks.where((task)=> !task.isCompleted).length;
-            return  SingleChildScrollView(
+      body: BlocBuilder<TaskBloc, TaskState>(
+        builder: (context, state) {
+          if (state is TaskInitial) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is TaskLoadSuccess) {
+            final tasks = state.tasks;
+            final remainingTaskCount = tasks.where((task) => !task.isCompleted).length;
+            return SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(15.0),
                 child: Column(
@@ -172,12 +93,15 @@ class _TaskListScreenState extends State<TaskListScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(' $_remainingTasksCount Task are pending', style: const TextStyle(
-                      fontSize: 18,
-                    ),),
+                    Text(
+                      '$remainingTaskCount Task${remainingTaskCount > 1 ? 's' : ''} are pending',
+                      style: const TextStyle(
+                        fontSize: 18,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10.0), // Adjust the padding as needed
+                      padding: const EdgeInsets.only(bottom: 10.0),
                       child: TextField(
                         decoration: InputDecoration(
                           hintText: 'Search...',
@@ -188,7 +112,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                               color: Color.fromRGBO(255, 116, 97, 1.0),
                             ),
                             onPressed: () {
-                              // Clear the search query
+                              // Handle search query
                             },
                           ),
                           border: OutlineInputBorder(
@@ -196,27 +120,23 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           ),
                         ),
                         onChanged: (value) {
-                          // Handle the search query change
+                          // Handle search query
                         },
-                        maxLines: 1, // Ensure the TextField remains single-line
+                        maxLines: 1,
                       ),
                     ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                     const Text(
                       "Ongoing Task",
                       style: TextStyle(color: Colors.black),
                     ),
-                    const SizedBox(
-                      height: 10,
-                    ),
+                    const SizedBox(height: 10),
                     Material(
                       elevation: 5.0,
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
                             Row(
@@ -224,9 +144,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                 CircularPercentIndicator(
                                   radius: 35.0,
                                   lineWidth: 5.0,
-                                  percent: calculateProgress() / 100,
+                                  percent: calculateProgress(tasks) / 100,
                                   center: Text(
-                                    "${calculateProgress().toStringAsFixed(0)}%",
+                                    "${calculateProgress(tasks).toStringAsFixed(0)}%",
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold, fontSize: 20.0),
                                   ),
@@ -248,28 +168,25 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                   style: TextStyle(
                                       fontSize: 25, fontWeight: FontWeight.bold),
                                 ),
-                                const SizedBox(
-                                  width: 12,
-                                ),
+                                const SizedBox(width: 12),
                                 Transform.rotate(
-                                    angle: -0.6,
-                                    child: Image.asset(
-                                      'images/rocket.jpg',
-                                      width: 100,
-                                    )),
+                                  angle: -0.6,
+                                  child: Image.asset(
+                                    'images/rocket.jpg',
+                                    width: 100,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      height: 30,
-                    ),
+                    const SizedBox(height: 30),
                     Row(
                       children: [
                         const Text(
-                          "Todays task",
+                          "Today's task",
                           style: TextStyle(fontSize: 20),
                         ),
                         const Spacer(),
@@ -288,15 +205,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(
-                      height: 20,
-                    ),
+                    const SizedBox(height: 20),
                     ListView.builder(
                       shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(), // Added shrinkWrap and physics
-                      itemCount: _tasks.length,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: tasks.length,
                       itemBuilder: (context, index) {
-                        final task = _tasks[index];
+                        final task = tasks[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10.0),
                           child: Container(
@@ -332,14 +247,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                       final updatedTask = await Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) =>
-                                              TaskDetailScreen(task: task),
+                                          builder: (context) => TaskDetailScreen(task: task),
                                         ),
                                       );
                                       if (updatedTask != null) {
-                                       //
-                                        // _updateTask(updatedTask, index);
-                                        BlocProvider.of<TaskBloc>(context).add(UpdateTasks(index,updatedTask));
+                                        _updateTask(updatedTask, index); // Correct method call
                                       }
                                     },
                                   ),
@@ -347,18 +259,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                     icon: const Icon(Icons.delete, color: Colors.white),
                                     onPressed: () {
                                       _deleteTask(index);
-                                      // //BlocProvider.of<TaskBloc>(context)
-                                      //     .add(DeleteTask(index));
                                     },
                                   ),
                                   Checkbox(
                                     activeColor: Colors.purple,
                                     value: task.isCompleted,
                                     onChanged: (bool? value) {
-
                                       _toggleTaskCompletion(index);
-                                      BlocProvider.of<TaskBloc>(context)
-                                          .add(ToggleTaskCompletion(index));
                                     },
                                   ),
                                 ],
@@ -367,14 +274,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                 final updatedTask = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) =>
-                                        TaskDetailScreen(task: task),
+                                    builder: (context) => TaskDetailScreen(task: task),
                                   ),
                                 );
                                 if (updatedTask != null) {
-                                 // _updateTask(updatedTask, index);
-                                  BlocProvider.of<TaskBloc>(context)
-                                      .add(UpdateTasks(index, updatedTask));
+                                  _updateTask(updatedTask, index); // Correct method call
                                 }
                               },
                             ),
@@ -386,41 +290,28 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 ),
               ),
             );
-          }
-          else if(state is TaskLoadFailure){
-            return Center(child:  Text(state.message),);
+          } else if (state is TaskLoadFailure) {
+            return Center(child: Text(state.message));
           }
 
-return Container();
+          return Container();
         },
-
       ),
-      floatingActionButton: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20)
-        ),
-        child: Center(
-          heightFactor: 1.0,
-          child: FloatingActionButton.extended(
-            backgroundColor: const Color.fromRGBO(255, 116, 97, 1.0),
-            foregroundColor: Colors.white,
-            elevation: 2,
-            label: const Text('Add new task'),
-            onPressed: () async {
-              final newTask = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TaskDetailScreen(task: Task(title: '')),
-                ),
-              );
-              if (newTask != null) {
-                _addTask(newTask);
-              }
-            },
-          ),
-        ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final newTask = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => TaskDetailScreen(task: Task(title: ''))),
+          );
+          if (newTask != null) {
+            _addTask(newTask);
+          }
+        },
+        label: const Text('Add Task'),
+        icon: const Icon(Icons.add),
       ),
     );
   }
 }
+
