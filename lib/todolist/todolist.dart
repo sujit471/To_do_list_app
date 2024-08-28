@@ -7,21 +7,19 @@ import '../bloc/task_state.dart';
 import '../model/task_detail_screen.dart';
 import '../model/task.dart';
 import 'expanded list.dart';
-
 import 'notification.dart';
-
+import 'overall_task.dart';
 class TaskListScreen extends StatefulWidget {
   @override
   _TaskListScreenState createState() => _TaskListScreenState();
 }
-
 class _TaskListScreenState extends State<TaskListScreen> {
-  @override
+
+  List<Task> _tasks = [];
   void initState() {
     super.initState();
     context.read<TaskBloc>().add(LoadTasks());
   }
-
   void _addTask(Task task) {
     context.read<TaskBloc>().add(AddTasks(task));
   }
@@ -43,7 +41,18 @@ class _TaskListScreenState extends State<TaskListScreen> {
     int completedTasks = tasks.where((task) => task.isCompleted).length;
     return (completedTasks / tasks.length) * 100;
   }
-
+  void _showRemainingTasksNotification() {
+    int remainingTasks = _remainingTasksCount;
+    String taskText = remainingTasks == 1 ? 'task' : 'tasks';
+    NotificationService().showNotification(
+      0,
+      'Task Reminder',
+      'You have $remainingTasks $taskText left to complete.',
+    );
+  }
+  int get _remainingTasksCount {
+    return _tasks.where((task) => !task.isCompleted).length;
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -274,7 +283,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                 final updatedTask = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => TaskDetailScreen(task: task),
+                                    builder: (context) => OverallTaskScreen(task: task,),
                                   ),
                                 );
                                 if (updatedTask != null) {
@@ -302,7 +311,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
         onPressed: () async {
           final newTask = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => TaskDetailScreen(task: Task(title: ''))),
+            MaterialPageRoute(builder: (context) => TaskDetailScreen(task: Task(title: '', dropdownSelections: []))),
           );
           if (newTask != null) {
             _addTask(newTask);

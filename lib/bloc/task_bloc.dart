@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'bloc_export.dart';  // Include all necessary BLoC exports
+import 'bloc_export.dart';
 import '../database/my_database.dart';
 import '../model/task.dart';
 
@@ -15,12 +15,12 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   }
 
   Future<void> _onLoadTasks(LoadTasks event, Emitter<TaskState> emit) async {
-    try {
+  //  try {
       final tasks = await _databaseHelper.getTasks();
       emit(TaskLoadSuccess(tasks));
-    } catch (e) {
-      emit(TaskLoadFailure('Failed to load tasks'));
-    }
+    // } catch (e) {
+    //   emit(TaskLoadFailure('Failed to load tasks'));
+    // }
   }
 
   Future<void> _addTasks(AddTasks event, Emitter<TaskState> emit) async {
@@ -57,8 +57,6 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       }
     }
   }
-
-
 
   Future<void> _toggleTaskCompletion(ToggleTaskCompletion event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
