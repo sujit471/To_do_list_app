@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/task_bloc.dart';
 import '../bloc/task_event.dart';
 import '../bloc/task_state.dart';
+import '../database/new_database.dart';
 import '../model/task_detail_screen.dart';
 import '../model/task.dart';
 import 'expanded list.dart';
@@ -21,7 +22,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
     context.read<TaskBloc>().add(LoadTasks());
   }
   void _addTask(Task task) {
-    context.read<TaskBloc>().add(AddTasks(task));
+    //context.read<TaskBloc>().add(AddTasks(task));
   }
 
   void _updateTask(Task task, int index) {
@@ -129,7 +130,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                           ),
                         ),
                         onChanged: (value) {
-                          // Handle search query
+
                         },
                         maxLines: 1,
                       ),
@@ -170,21 +171,14 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                 )
                               ],
                             ),
-                            Row(
+                            const Row(
                               children: [
-                                const Text(
+                                Text(
                                   "Space app design",
                                   style: TextStyle(
                                       fontSize: 25, fontWeight: FontWeight.bold),
                                 ),
-                                const SizedBox(width: 12),
-                                Transform.rotate(
-                                  angle: -0.6,
-                                  child: Image.asset(
-                                    'images/rocket.jpg',
-                                    width: 100,
-                                  ),
-                                ),
+                                SizedBox(width: 12),
                               ],
                             ),
                           ],
@@ -265,9 +259,16 @@ class _TaskListScreenState extends State<TaskListScreen> {
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.white),
-                                    onPressed: () {
-                                      _deleteTask(index);
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () async{
+                                     // _deleteTask(index);
+                                     // context.read<TaskBloc>().add(_deleteTasks(task.id));
+                                      await NewDatabase().deleteTask(task.id!);
+                                      setState(() {
+                                        // remove at removes the selected item from the ui
+
+                                        tasks.removeAt(index);
+                                      });
                                     },
                                   ),
                                   Checkbox(

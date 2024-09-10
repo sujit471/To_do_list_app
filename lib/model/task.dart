@@ -5,8 +5,8 @@ class Task {
   String description;
   bool isCompleted;
   int? id;
-  String itemType;  // New field for main item type
-  String subType;   // New field for sub item type
+  // String itemType;  // New field for main item type
+  // String subType;   // New field for sub item type
    List<Map<String,dynamic>>  dropdownSelections;
 
   Task({
@@ -15,8 +15,8 @@ class Task {
     this.id,
     this.description = '',
     this.isCompleted = false,
-    this.itemType = '',  // Default value
-    this.subType = '',   // Default value
+    // this.itemType = '',  // Default value
+    // this.subType = '',   // Default value
   });
 
   // Allow copying of Task objects with modifications
@@ -26,16 +26,18 @@ class Task {
     bool? isCompleted,
     int? id,
     String? itemType,  // Added to copyWith method
-    String? subType,   // Added to copyWith method
+    String? subType,
+    List<Map<String, dynamic>>? dropdownSelections,  // Added to copyWith method
   }) {
     return Task(
-      dropdownSelections: dropdownSelections,
+      dropdownSelections: dropdownSelections ?? this.dropdownSelections,
       title: title ?? this.title,
       description: description ?? this.description,
       isCompleted: isCompleted ?? this.isCompleted,
       id: id ?? this.id,
-      itemType: itemType ?? this.itemType,  // Handle itemType
-      subType: subType ?? this.subType,     // Handle subType
+      // itemType: itemType ?? this.itemType,  // Handle itemType
+      // subType: subType ?? this.subType,     // Handle subType
+
     );
   }
 
@@ -46,8 +48,8 @@ class Task {
       'title': title,
       'description': description,
       'isCompleted': isCompleted ? 1 : 0,
-      'itemType': itemType,  // Include itemType in the map
-      'subType': subType,
+      // 'itemType': itemType,  // Include itemType in the map
+      // 'subType': subType,
       'dropdownSelections': jsonEncode(dropdownSelections), // Convert to JSON string
       // Include subType in the map
     };
@@ -60,8 +62,8 @@ class Task {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       isCompleted: map['isCompleted'] == 1,
-      itemType: map['itemType'] ?? '',
-      subType: map['subType'] ?? '',
+      // itemType: map['itemType'] ?? '',
+      // subType: map['subType'] ?? '',
       // dropdownSelections: jsonDecode(map['dropdownSelections']), // Deserialize JSON to list,
       dropdownSelections: map['dropdownSelections'] != null
           ? List<Map<String, dynamic>>.from(

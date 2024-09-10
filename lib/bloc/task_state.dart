@@ -3,6 +3,7 @@ import '../model/task.dart';
 
 abstract class TaskState extends Equatable {
   @override
+
   List<Object?> get props => [];
 }
 

@@ -23,9 +23,9 @@ class _ExpandedlistState extends State<Expandedlist> {
     context.read<TaskBloc>().add(LoadTasks());
   }
 
-  void _addTask(Task task) {
-    context.read<TaskBloc>().add(AddTasks(task));
-  }
+  // void _addTask(Task task) {
+  //   context.read<TaskBloc>().add(AddTasks(task));
+  // }
 
   void _updateTask(Task task, int index) {
     context.read<TaskBloc>().add(UpdateTasks(index, task));

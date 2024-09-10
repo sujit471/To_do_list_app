@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:to_do_list/database/new_database.dart';
 import 'bloc_export.dart';
-import '../database/my_database.dart';
 import '../model/task.dart';
 
 class TaskBloc extends Bloc<TaskEvent, TaskState> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  //final DatabaseHelper _databaseHelper = DatabaseHelper();
+  final NewDatabase _databaseHelper = NewDatabase();
+
 
   TaskBloc() : super(TaskInitial()) {
     on<LoadTasks>(_onLoadTasks);
@@ -27,7 +29,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     if (state is TaskLoadSuccess) {
       final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks)
         ..add(event.task);
-      await _databaseHelper.insertTask(event.task);
+     var id = await _databaseHelper.insertTask(event.task);
+     //await _databaseHelper.insertDropdownSelection(event.task as int,event.task as int);
       emit(TaskLoadSuccess(updatedTasks));
     }
   }
@@ -45,8 +48,6 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     if (state is TaskLoadSuccess) {
       final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
       final taskToDelete = updatedTasks[event.index];
-
-      // Ensure the ID is used correctly and not nullable
       final taskId = taskToDelete.id;
       if (taskId != null) {
         await _databaseHelper.deleteTask(taskId);

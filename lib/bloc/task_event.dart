@@ -10,8 +10,9 @@ class LoadTasks extends TaskEvent {}
 
 class AddTasks extends TaskEvent {
   final Task task;
+  final List<Map<String,dynamic>> dropDownSelection;
 
-  AddTasks(this.task);
+  AddTasks(this.task, this.dropDownSelection);
 
   @override
   List<Object?> get props => [task];
