@@ -4,9 +4,7 @@ import 'bloc_export.dart';
 import '../model/task.dart';
 
 class TaskBloc extends Bloc<TaskEvent, TaskState> {
-  //final DatabaseHelper _databaseHelper = DatabaseHelper();
   final NewDatabase _databaseHelper = NewDatabase();
-
 
   TaskBloc() : super(TaskInitial()) {
     on<LoadTasks>(_onLoadTasks);
@@ -14,45 +12,55 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     on<UpdateTasks>(_updateTasks);
     on<DeleteTask>(_deleteTasks);
     on<ToggleTaskCompletion>(_toggleTaskCompletion);
+    on<TaskUpdated>((event, emit) async {
+      try {
+        final tasks = await NewDatabase().getTasks(); // Assuming this fetches updated tasks
+        emit(TaskLoadSuccess(tasks));
+      } catch (e) {
+        emit(TaskLoadFailure(e.toString()));
+      }
+    });
+
   }
 
   Future<void> _onLoadTasks(LoadTasks event, Emitter<TaskState> emit) async {
-  //  try {
-      final tasks = await _databaseHelper.getTasks();
-      emit(TaskLoadSuccess(tasks));
-    // } catch (e) {
-    //   emit(TaskLoadFailure('Failed to load tasks'));
-    // }
+    final tasks = await _databaseHelper.getTasks();
+    emit(TaskLoadSuccess(tasks));
   }
 
   Future<void> _addTasks(AddTasks event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks)
-        ..add(event.task);
-     var id = await _databaseHelper.insertTask(event.task);
-     //await _databaseHelper.insertDropdownSelection(event.task as int,event.task as int);
-      emit(TaskLoadSuccess(updatedTasks));
+      // Insert the new task into the database
+      await _databaseHelper.insertTask(event.task);
+
+      // Re-fetch the updated list of tasks and emit it
+      final tasks = await _databaseHelper.getTasks();
+      emit(TaskLoadSuccess(tasks));
     }
   }
 
   Future<void> _updateTasks(UpdateTasks event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
-      updatedTasks[event.index] = event.task;
+      // Update the task in the database
       await _databaseHelper.updateTask(event.task);
-      emit(TaskLoadSuccess(updatedTasks));
+
+      // Re-fetch the updated list of tasks and emit it
+      final tasks = await _databaseHelper.getTasks();
+      emit(TaskLoadSuccess(tasks));
     }
   }
 
   Future<void> _deleteTasks(DeleteTask event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
-      final taskToDelete = updatedTasks[event.index];
+      final taskToDelete = (state as TaskLoadSuccess).tasks[event.index];
       final taskId = taskToDelete.id;
+
       if (taskId != null) {
         await _databaseHelper.deleteTask(taskId);
-        updatedTasks.removeAt(event.index);
-        emit(TaskLoadSuccess(updatedTasks));
+
+        // Re-fetch the updated list of tasks and emit it
+        final tasks = await _databaseHelper.getTasks();
+        emit(TaskLoadSuccess(tasks));
       } else {
         emit(TaskLoadFailure('Failed to delete task: ID is null'));
       }
@@ -61,12 +69,14 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
 
   Future<void> _toggleTaskCompletion(ToggleTaskCompletion event, Emitter<TaskState> emit) async {
     if (state is TaskLoadSuccess) {
-      final updatedTasks = List<Task>.from((state as TaskLoadSuccess).tasks);
-      final task = updatedTasks[event.index];
+      final task = (state as TaskLoadSuccess).tasks[event.index];
       final updatedTask = task.copyWith(isCompleted: !task.isCompleted);
-      updatedTasks[event.index] = updatedTask;
+
+      // Update the task completion status in the database
       await _databaseHelper.updateTask(updatedTask);
-      emit(TaskLoadSuccess(updatedTasks));
+      // Re-fetch the updated list of tasks and emit it
+      final tasks = await _databaseHelper.getTasks();
+      emit(TaskLoadSuccess(tasks));
     }
   }
 }

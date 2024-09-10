@@ -106,7 +106,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    // Dynamic Dropdowns
                     Expanded(
                       child: ListView.builder(
                         itemCount: dropdownSelections.length,
@@ -258,6 +257,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                                 );
                               }
                             }
+                            // this is the state  where the changes have been made are directly added to the bloc to pass the state
+                            context.read<TaskBloc>().add(TaskUpdated(taskId!));
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Task and Subtasks saved successfully!')),
                             );

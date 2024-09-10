@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:to_do_list/model/sub_task_model.dart';
